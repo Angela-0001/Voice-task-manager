@@ -4,11 +4,7 @@ const voiceLogSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: false
-  },
-  sessionId: {
-    type: String,
-    required: false
+    required: true
   },
   rawCommand: {
     type: String,
@@ -33,6 +29,5 @@ const voiceLogSchema = new mongoose.Schema({
 });
 
 voiceLogSchema.index({ userId: 1, createdAt: -1 });
-voiceLogSchema.index({ sessionId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('VoiceLog', voiceLogSchema);

@@ -252,17 +252,10 @@ const VoiceRecorder = ({ open, onClose, onSave, taskId }) => {
       formData.append('duration', recordingDuration.toString());
       formData.append('mimeType', 'audio/webm;codecs=opus');
 
-      // Add device ID for anonymous users
-      const deviceId = localStorage.getItem('device_id');
-      if (deviceId) {
-        formData.append('deviceId', deviceId);
-      }
-
       const response = await fetch('http://localhost:5014/api/voice-memo/upload', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
-          'x-device-id': deviceId || ''
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
         },
         body: formData
       });

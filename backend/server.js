@@ -12,18 +12,15 @@ const resolvers = require('./resolvers');
 
 const app = express();
 
+const allowedOrigins = process.env.FRONTEND_URL
+  ? [process.env.FRONTEND_URL]
+  : ['http://localhost:8081', 'http://localhost:8082', 'http://localhost:8083', 'http://localhost:3000'];
+
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:8083',
-    'http://localhost:8081',
-    'http://localhost:8082',
-    'http://localhost:8083',
-    'http://localhost:3000',
-    'https://studio.apollographql.com'
-  ],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id', 'x-device-id', 'Apollo-Require-Preflight']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Apollo-Require-Preflight']
 }));
 
 app.use((req, res, next) => {
@@ -54,76 +51,58 @@ mongoose.connect(process.env.MONGODB_URI)
 
 mongoose.connection.on('error', err => console.error('MongoDB error:', err));app.post('/api/voice-memo/upload', upload.single('audioFile'), async (req, res) => {
   try {
-    const { taskId, duration, mimeType } = req.body;
-    
+    const { taskId, duration } = req.body;
+
     if (!req.file) {
       return res.status(400).json({ error: 'No audio file provided' });
     }
-    
-    // Verify authentication
+
+    // Require authentication
     const authHeader = req.headers.authorization;
-    const deviceId = req.headers['x-device-id'];
-    let userId = null;
-    let isAnonymous = true;
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    let userId;
+    try {
       const token = authHeader.split(' ')[1];
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        userId = decoded.userId;
-        isAnonymous = false;
-      } catch (error) {
-        // Invalid token, treat as anonymous
-      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      userId = decoded.userId;
+    } catch {
+      return res.status(401).json({ error: 'Invalid or expired token' });
     }
-    
+
     // Validate task ownership
-    let query = { _id: taskId };
-    if (isAnonymous) {
-      query.userId = null;
-      query.deviceId = deviceId;
-    } else {
-      query.userId = userId;
-    }
-    
     const Task = require('./models/Task');
-    const task = await Task.findOne(query);
+    const task = await Task.findOne({ _id: taskId, userId });
     if (!task) {
       return res.status(404).json({ error: 'Task not found or access denied' });
     }
-    
-    // Check voice memo limit
+
     if (task.voiceMemos && task.voiceMemos.length >= 10) {
       return res.status(400).json({ error: 'Maximum 10 voice memos allowed per task' });
     }
-    
-    // Generate unique filename
-    const timestamp = Date.now();
-    const uniqueFilename = `voice-memo-${timestamp}-${Math.random().toString(36).substring(2, 11)}.webm`;
-    
-    // Upload to GridFS
+
+    const uniqueFilename = `voice-memo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}.webm`;
+
     const uploadStream = global.gridFSBucket.openUploadStream(uniqueFilename, {
       metadata: {
         taskId: new mongoose.Types.ObjectId(taskId),
-        userId: isAnonymous ? null : new mongoose.Types.ObjectId(userId),
-        deviceId: deviceId,
+        userId: new mongoose.Types.ObjectId(userId),
         mimeType: req.file.mimetype,
         duration: parseFloat(duration),
         originalName: req.file.originalname
       }
     });
-    
-    // Create readable stream from buffer
+
     const { Readable } = require('stream');
     const bufferStream = new Readable();
     bufferStream.push(req.file.buffer);
     bufferStream.push(null);
-    
     bufferStream.pipe(uploadStream);
-    
+
     uploadStream.on('finish', async () => {
       try {
-        // Create voice memo object
         const voiceMemo = {
           _id: new mongoose.Types.ObjectId(),
           audioFileId: uploadStream.id,
@@ -134,14 +113,11 @@ mongoose.connection.on('error', err => console.error('MongoDB error:', err));app
           transcription: '',
           transcriptionConfidence: null,
           createdAt: new Date(),
-          createdBy: isAnonymous ? null : new mongoose.Types.ObjectId(userId)
+          createdBy: new mongoose.Types.ObjectId(userId)
         };
-        
-        // Add to task
-        await Task.findByIdAndUpdate(taskId, {
-          $push: { voiceMemos: voiceMemo }
-        });
-        
+
+        await Task.findByIdAndUpdate(taskId, { $push: { voiceMemos: voiceMemo } });
+
         res.json({
           success: true,
           voiceMemo: {
@@ -162,12 +138,12 @@ mongoose.connection.on('error', err => console.error('MongoDB error:', err));app
         res.status(500).json({ error: 'Failed to save voice memo' });
       }
     });
-    
+
     uploadStream.on('error', (error) => {
       console.error('GridFS upload error:', error);
       res.status(500).json({ error: 'Failed to upload audio file' });
     });
-    
+
   } catch (error) {
     console.error('Voice memo upload error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -228,54 +204,26 @@ mongoose.connection.on('error', err => console.error('MongoDB error:', err));app
   }
 });
 
-// Create Apollo Server with device-specific authentication context
+// Create Apollo Server
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  introspection: true,
+  introspection: process.env.NODE_ENV !== 'production',
   playground: false,
   context: async ({ req }) => {
     const authHeader = req.headers.authorization;
-    const sessionIdHeader = req.headers['x-session-id'];
-    const deviceIdHeader = req.headers['x-device-id'];
-    
-    // Generate or get device ID for anonymous users
-    const deviceId = deviceIdHeader || `device-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-    
-    // STRICT RULE: If Authorization header exists, user is authenticated
+
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        return {
-          userId: decoded.userId,
-          userEmail: decoded.email,
-          isAnonymous: false,
-          sessionId: null, // No sessionId for authenticated users
-          deviceId: deviceId // Still track device for authenticated users
-        };
-      } catch (error) {
-        const sessionId = sessionIdHeader || `anon-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-        return {
-          userId: null,
-          userEmail: null,
-          isAnonymous: true,
-          sessionId: sessionId,
-          deviceId: deviceId
-        };
+        return { userId: decoded.userId, userEmail: decoded.email };
+      } catch {
+        // Invalid token — return empty context (resolvers will throw if auth required)
       }
     }
-    
-    const sessionId = sessionIdHeader || `anon-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-    return {
-      userId: null,
-      userEmail: null,
-      isAnonymous: true,
-      sessionId: sessionId,
-      deviceId: deviceId
-    };
+
+    return { userId: null, userEmail: null };
   },
   formatError: (error) => {
     console.error('GraphQL Error:', error);

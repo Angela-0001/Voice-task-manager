@@ -7,11 +7,7 @@ const taskSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: false // Allow null for anonymous users
-  },
-  deviceId: {
-    type: String,
-    required: false // For anonymous users - identifies the device
+    required: true
   },
   title: {
     type: String,
@@ -96,7 +92,7 @@ const taskSchema = new mongoose.Schema({
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: false // Allow null for anonymous users
+      required: false
     }
   }]
 }, {
@@ -105,7 +101,6 @@ const taskSchema = new mongoose.Schema({
 
 // Index for faster queries
 taskSchema.index({ userId: 1, status: 1 });
-taskSchema.index({ deviceId: 1, status: 1 });
 taskSchema.index({ userId: 1, priority: 1 });
 taskSchema.index({ 'voiceMemos.transcription': 'text' }); // Text search on transcriptions
 
@@ -122,13 +117,6 @@ taskSchema.pre('save', function() {
   // Automatically set completedAt when status changes
   if (this.isModified('status') && this.status === 'completed' && !this.completedAt) {
     this.completedAt = new Date();
-  }
-  
-  // Log for debugging
-  if (this.userId) {
-    console.log('💾 Saving authenticated task:', { userId: this.userId, title: this.title });
-  } else {
-    console.log('💾 Saving anonymous task:', { title: this.title });
   }
 });
 

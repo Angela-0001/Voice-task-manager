@@ -6,7 +6,7 @@ import { GET_TASKS } from '../graphql/queries';
 const initialState = {
   tasks: [],
   currentPage: 'home',
-  user: { id: 'anonymous', name: 'Anonymous User' },
+  user: null,
   settings: {
     voice: {
       rate: 1.0,

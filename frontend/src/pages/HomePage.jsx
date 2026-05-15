@@ -97,9 +97,7 @@ const HomePage = () => {
     // Expose tasks globally for debugging
     window.debugTasks = tasks;
     window.debugTasksData = tasksData;
-  }, [tasks, tasksLoading, tasksError, tasksData]);
-
-  // State
+  }, [tasks, tasksLoading, tasksError, tasksData]);  // State
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskFilter, setTaskFilter] = useState('all');
   const [viewMode, setViewMode] = useState('list');
@@ -309,61 +307,12 @@ const HomePage = () => {
     // Expose debugging functions globally
     window.debugPlayWelcome = playWelcome;
     window.debugTestSpeech = () => {
-      console.log('🔊 Testing basic speech synthesis...');
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance('Hello, this is a test of speech synthesis');
-        utterance.onstart = () => console.log('🔊 Basic speech started');
-        utterance.onend = () => console.log('🔊 Basic speech ended');
-        utterance.onerror = (e) => console.error('🔊 Basic speech error:', e);
         window.speechSynthesis.speak(utterance);
-      } else {
-        console.error('🔊 Speech synthesis not supported');
       }
     };
     window.debugFeedback = feedback;
-    
-    // Device ID debug function
-    window.debugDeviceInfo = () => {
-      console.log('🔍 Device Info:', {
-        deviceId: localStorage.getItem('device_id'),
-        userAgent: navigator.userAgent,
-        language: navigator.language,
-        screen: `${screen.width}x${screen.height}`,
-        isAnonymous: !localStorage.getItem('auth_token')
-      });
-    };
-
-    // Migration function to recover existing tasks
-    window.migrateMyTasks = async () => {
-      console.log('🔄 Starting task migration...');
-      try {
-        const response = await fetch('http://localhost:5014/graphql', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-device-id': localStorage.getItem('device_id')
-          },
-          body: JSON.stringify({
-            query: `
-              query MigrateAnonymousTasksToDevice {
-                migrateAnonymousTasksToDevice
-              }
-            `
-          })
-        });
-        
-        const result = await response.json();
-        if (result.data?.migrateAnonymousTasksToDevice) {
-          console.log('✅ Migration result:', result.data.migrateAnonymousTasksToDevice);
-          // Refresh the page to load the migrated tasks
-          window.location.reload();
-        } else if (result.errors) {
-          console.error('❌ Migration errors:', result.errors);
-        }
-      } catch (error) {
-        console.error('❌ Migration failed:', error);
-      }
-    };
 
     // Don't auto-play welcome message to avoid browser blocking
     // Welcome will play when user first interacts with voice controls

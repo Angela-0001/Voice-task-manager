@@ -17,7 +17,6 @@ import {
   DarkMode as DarkModeIcon,
   Person as PersonIcon,
   Logout as LogoutIcon,
-  Login as LoginIcon,
   Assignment as TasksIcon,
   BarChart as StatsIcon,
   Info as AboutIcon,
@@ -149,38 +148,12 @@ const Header = ({ currentPage, onPageChange, onSignOut, onShowSignIn }) => {
           
           <IconButton 
             color="inherit" 
-            onClick={() => {
-              toggleTheme();
-
-            }}
+            onClick={toggleTheme}
             aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
             sx={{ color: '#FFFFFF' }}
           >
             {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
           </IconButton>
-
-          {!isAuthenticated && onShowSignIn && (
-            <Button
-              variant="contained"
-              startIcon={<LoginIcon />}
-              onClick={onShowSignIn}
-              sx={{
-                fontWeight: 500,
-                background: 'rgba(255, 255, 255, 0.2)',
-                color: '#FFFFFF',
-                borderRadius: 1,
-                px: 3,
-                py: 1,
-                fontSize: '0.875rem',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  background: 'rgba(255, 255, 255, 0.3)',
-                },
-              }}
-            >
-              Sign In
-            </Button>
-          )}
           
           <IconButton
             color="inherit"
@@ -204,30 +177,17 @@ const Header = ({ currentPage, onPageChange, onSignOut, onShowSignIn }) => {
           transformOrigin={{ horizontal: 'right', vertical: 'top' }}
           anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         >
-          {isAuthenticated && (
-            <MenuItem disabled>
-              <Typography variant="body2" color="text.secondary">
-                {user?.email || 'Authenticated User'}
-              </Typography>
-            </MenuItem>
-          )}
-          {!isAuthenticated && (
-            <MenuItem disabled>
-              <Typography variant="body2" color="text.secondary">
-                Anonymous Mode
-              </Typography>
-            </MenuItem>
-          )}
-          <MenuItem onClick={() => { 
-            handleMenuClose(); 
-            onPageChange('settings');
-
-          }}>
+          <MenuItem disabled>
+            <Typography variant="body2" color="text.secondary">
+              {user?.email || user?.username}
+            </Typography>
+          </MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); onPageChange('settings'); }}>
             Settings
           </MenuItem>
           <MenuItem onClick={handleSignOut}>
             <LogoutIcon sx={{ mr: 1, fontSize: 20 }} />
-            {isAuthenticated ? 'Sign Out' : 'Exit Anonymous'}
+            Sign Out
           </MenuItem>
         </Menu>
       </Toolbar>

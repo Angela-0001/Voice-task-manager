@@ -57,12 +57,9 @@ export const GET_TASKS = gql`
     tasks {
       success
       count
-      isAnonymous
-      sessionId
       tasks {
         id
         userId
-        sessionId
         title
         description
         status
@@ -94,8 +91,6 @@ export const GET_PENDING_TASKS = gql`
     pendingTasks {
       success
       count
-      isAnonymous
-      sessionId
       tasks {
         id
         title
@@ -114,8 +109,6 @@ export const GET_COMPLETED_TASKS = gql`
     completedTasks {
       success
       count
-      isAnonymous
-      sessionId
       tasks {
         id
         title
@@ -134,7 +127,6 @@ export const CREATE_TASK = gql`
     createTask(title: $title, description: $description, status: $status, priority: $priority, dueDate: $dueDate, reminderEnabled: $reminderEnabled, recurrence: $recurrence) {
       id
       userId
-      sessionId
       title
       description
       status
@@ -221,7 +213,6 @@ export const GET_VOICE_LOGS = gql`
     voiceLogs(limit: $limit) {
       id
       userId
-      sessionId
       rawCommand
       interpretedIntent
       actionTriggered
@@ -250,16 +241,6 @@ export const CLEAR_VOICE_LOGS = gql`
   }
 `;
 
-// Migration
-export const MIGRATE_ANONYMOUS_TASKS = gql`
-  mutation MigrateAnonymousTasks {
-    migrateAnonymousTasks {
-      success
-      migratedTasksCount
-      migratedLogsCount
-    }
-  }
-`;
 // Voice Memo queries
 export const DELETE_VOICE_MEMO = gql`
   mutation DeleteVoiceMemo($taskId: ID!, $memoId: ID!) {

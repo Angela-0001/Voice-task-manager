@@ -31,64 +31,47 @@ const AppContent = () => {
   } = useApp();
   
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [appState, setAppState] = useState('app'); // 'about', 'login', 'register', 'app'
+  const [appState, setAppState] = useState('login'); // default to login, no anonymous access
 
-  // Listen for events from AboutPage - MUST be called before any early returns
+  // Listen for events from AboutPage
   useEffect(() => {
-    const handleShowSignIn = () => {
-      setAppState('login');
-    };
-
-    const handleGoToTasks = () => {
-      setAppState('app');
-      setCurrentPage('home');
-    };
+    const handleShowSignIn = () => setAppState('login');
+    const handleGoToTasks = () => { setAppState('app'); setCurrentPage('home'); };
 
     window.addEventListener('showSignIn', handleShowSignIn);
     window.addEventListener('goToTasks', handleGoToTasks);
-    
     return () => {
       window.removeEventListener('showSignIn', handleShowSignIn);
       window.removeEventListener('goToTasks', handleGoToTasks);
     };
   }, []);
 
-  // If user is authenticated, go to app
+  // Once authenticated, go to app
   useEffect(() => {
-    if (isAuthenticated && appState !== 'app') {
-      setAppState('app');
-    }
-  }, [isAuthenticated, appState]);
+    if (isAuthenticated) setAppState('app');
+  }, [isAuthenticated]);
 
   if (authLoading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         Loading...
       </Box>
     );
   }
 
-  // Show login page
-  if (appState === 'login' && !isAuthenticated) {
+  if (!isAuthenticated) {
+    if (appState === 'register') {
+      return (
+        <RegistrationPage
+          onBack={() => setAppState('login')}
+          onShowLogin={() => setAppState('login')}
+        />
+      );
+    }
     return (
-      <LoginPage 
-        onBack={() => setAppState('about')}
+      <LoginPage
+        onBack={() => setAppState('login')}
         onShowRegister={() => setAppState('register')}
-      />
-    );
-  }
-
-  // Show registration page
-  if (appState === 'register' && !isAuthenticated) {
-    return (
-      <RegistrationPage 
-        onBack={() => setAppState('about')}
-        onShowLogin={() => setAppState('login')}
       />
     );
   }
@@ -126,7 +109,7 @@ const AppContent = () => {
     }
   };
 
-  // Main app interface (authenticated or anonymous)
+  // Main app interface
   return (
     <Box sx={{ 
       minHeight: '100vh',

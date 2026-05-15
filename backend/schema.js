@@ -34,8 +34,7 @@ const typeDefs = gql`
 
   type Task {
     id: ID!
-    userId: ID
-    sessionId: String
+    userId: ID!
     title: String!
     description: String
     priority: Priority!
@@ -51,8 +50,7 @@ const typeDefs = gql`
 
   type VoiceLog {
     id: ID!
-    userId: ID
-    sessionId: String
+    userId: ID!
     rawCommand: String!
     interpretedIntent: String!
     actionTriggered: String
@@ -64,51 +62,27 @@ const typeDefs = gql`
     success: Boolean!
     count: Int!
     tasks: [Task!]!
-    isAnonymous: Boolean!
-    sessionId: String
   }
-
-  type MigrationResponse {
-    success: Boolean!
-    migratedTasksCount: Int!
-    migratedLogsCount: Int!
-  }
-
-
 
   enum Priority { low, medium, high }
   enum TaskStatus { pending, in_progress, completed }
   enum Recurrence { none, daily, weekly, monthly }
 
-
-
   type Query {
-    # Auth
     me: User
-    
-    # Tasks (returns count and metadata matching reference)
     tasks: TasksResponse!
     task(id: ID!): Task
     pendingTasks: TasksResponse!
     completedTasks: TasksResponse!
-    
-
-    
-    # Voice Logs
     voiceLogs(limit: Int): [VoiceLog!]!
-    
-    # Voice Memos
     getVoiceMemoUrl(memoId: ID!): String!
     searchTasksByVoiceContent(query: String!): [Task!]!
   }
 
   type Mutation {
-    # Auth
     register(username: String!, email: String!, password: String!): AuthPayload!
     login(email: String!, password: String!): AuthPayload!
 
-    
-    # Tasks (matching reference response structure)
     createTask(
       title: String!
       description: String
@@ -118,7 +92,7 @@ const typeDefs = gql`
       reminderEnabled: Boolean
       recurrence: Recurrence
     ): Task!
-    
+
     updateTask(
       id: ID!
       title: String
@@ -128,29 +102,23 @@ const typeDefs = gql`
       reminderEnabled: Boolean
       recurrence: Recurrence
     ): Task!
-    
+
     deleteTask(id: ID!): Boolean!
     markTaskComplete(id: ID!): Task!
     bulkDeleteCompleted: Boolean!
     bulkDeleteAll: Boolean!
     bulkUpdateStatus(status: TaskStatus!): Int!
     duplicateTask(id: ID!): Task!
-    
-    # Voice Logs
+
     createVoiceLog(
       rawCommand: String!
       interpretedIntent: String!
       actionTriggered: String
       success: Boolean!
     ): VoiceLog!
-    
+
     clearVoiceLogs: Int!
-    
-    # Migration
-    migrateAnonymousTasks: MigrationResponse!
-    migrateAnonymousTasksToDevice: String!
-    
-    # Voice Memos (Upload via REST /api/voice-memo/upload)
+
     refreshTask(taskId: ID!): Task
     deleteVoiceMemo(taskId: ID!, memoId: ID!): Boolean!
   }

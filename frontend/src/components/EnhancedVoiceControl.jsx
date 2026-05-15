@@ -223,21 +223,12 @@ const EnhancedVoiceControl = ({ refetchTasks }) => {
     }
   });
 
-  // Check if LLM is available
+  // Check if LLM (Groq) is available
   const checkLLMAvailability = async () => {
     setLLMStatus('checking');
     try {
-      // First check Ollama status
-      const ollamaResult = await ollamaStatus.checkStatus();
-      
-      if (ollamaResult.available) {
-        // Test actual voice command parsing
-        const testResult = await voiceCommandService.parseVoiceCommand('test command');
-        if (testResult && !testResult.reasoning?.includes('Enhanced fallback parsing')) {
-          setLLMStatus('available');
-        } else {
-          setLLMStatus('unavailable');
-        }
+      if (ollamaStatus.isReady()) {
+        setLLMStatus('available');
       } else {
         setLLMStatus('unavailable');
       }
@@ -1707,8 +1698,8 @@ const EnhancedVoiceControl = ({ refetchTasks }) => {
             border: '1px solid rgba(33, 150, 243, 0.3)',
           }}
         >
-          AI mode selected but AI is unavailable. Using enhanced fallback parsing with date recognition. 
-          To enable full AI: Install Ollama or add API keys to .env file.
+          AI mode selected but Groq API key not found. Using enhanced fallback parsing with date recognition. 
+          Add VITE_GROQ_API_KEY to your .env file to enable full AI parsing.
         </Alert>
       )}
 
@@ -2016,7 +2007,7 @@ const EnhancedVoiceControl = ({ refetchTasks }) => {
           {useLLMParsing && llmStatus === 'available' 
             ? '🧠 AI understands natural language, dates, and priorities in English'
             : useLLMParsing && llmStatus === 'unavailable'
-            ? '🔄 Enhanced fallback with date recognition - Install Ollama for full AI'
+            ? '🔄 Enhanced fallback with date recognition - Add VITE_GROQ_API_KEY to .env for full AI'
             : '🎤 Basic mode - simple commands work best'
           }
         </Typography>
