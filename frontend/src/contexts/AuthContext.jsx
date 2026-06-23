@@ -94,7 +94,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('auth_token');
     await client.clearStore();
     dispatch({ type: ActionTypes.LOGOUT });
-    window.location.replace('/');
+    // Navigate by dispatching state reset — no full page reload needed
+    window.dispatchEvent(new Event('auth:logout'));
   };
 
   const clearError = () => dispatch({ type: ActionTypes.SET_ERROR, payload: null });

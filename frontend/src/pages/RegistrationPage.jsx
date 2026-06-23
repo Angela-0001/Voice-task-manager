@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Card,
@@ -21,7 +21,7 @@ import { useTheme } from '../contexts/ThemeContext';
 
 
 const RegistrationPage = ({ onBack, onShowLogin }) => {
-  const { register, error, isLoading, clearError, user, isAuthenticated } = useAuth();
+  const { register, error, isLoading, clearError } = useAuth();
   const { getGlassmorphismStyle } = useTheme();
 
   const [formData, setFormData] = useState({
@@ -31,20 +31,6 @@ const RegistrationPage = ({ onBack, onShowLogin }) => {
     confirmPassword: ''
   });
   const [formErrors, setFormErrors] = useState({});
-
-  // Handle successful registration
-  useEffect(() => {
-    if (isAuthenticated && user) {
-
-    }
-  }, [isAuthenticated, user]);
-
-  // Handle registration errors
-  useEffect(() => {
-    if (error) {
-
-    }
-  }, [error]);
 
   const handleInputChange = (field) => (event) => {
     setFormData(prev => ({
@@ -78,8 +64,10 @@ const RegistrationPage = ({ onBack, onShowLogin }) => {
     
     if (!formData.password) {
       errors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      errors.password = 'Password must contain uppercase, lowercase, and a number';
     }
     
     if (formData.password !== formData.confirmPassword) {

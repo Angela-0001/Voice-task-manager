@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Container,
   Card,
@@ -21,28 +21,11 @@ import { useTheme } from '../contexts/ThemeContext';
 
 
 const LoginPage = ({ onBack, onShowRegister }) => {
-  const { login, error, isLoading, clearError, user, isAuthenticated } = useAuth();
+  const { login, error, isLoading, clearError } = useAuth();
   const { getGlassmorphismStyle } = useTheme();
 
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [formErrors, setFormErrors] = useState({});
-
-  // Handle successful login
-  useEffect(() => {
-    if (isAuthenticated && user) {
-
-    }
-  }, [isAuthenticated, user]);
-
-  // Handle login errors
-  useEffect(() => {
-    if (error) {
-
-    }
-  }, [error]);
 
   const handleInputChange = (field) => (event) => {
     setFormData(prev => ({

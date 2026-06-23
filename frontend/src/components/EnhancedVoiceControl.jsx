@@ -374,26 +374,28 @@ const EnhancedVoiceControl = ({ refetchTasks }) => {
     }
   };
 
-  // Expose debug functions globally
+  // Expose debug functions only in development
   useEffect(() => {
-    window.debugDeleteAll = debugDeleteAll; // Test delete all
-    window.debugReadAll = debugReadAll; // Test read all tasks
-    window.debugBulkUpdate = debugBulkUpdate; // Test bulk updates
-    window.debugStatusUpdate = debugStatusUpdate; // Test in progress
-    window.debugIndividualUpdate = debugIndividualUpdate; // Test individual update
-    window.debugRecognition = debugRecognition; // Check recognition status
-    window.debugMicrophone = debugMicrophone; // Test microphone access and audio levels
-    window.debugPriorityUpdate = debugPriorityUpdate; // Test priority updates
-    window.debugTaskNumberStatus = debugTaskNumberStatus; // Test task number status
-    window.debugDueDateUpdate = debugDueDateUpdate; // Test due date updates
-    window.debugStatusUpdate1 = () => debugStatusUpdate('mark milk as done'); // Test status updates
-    window.debugStatusUpdate2 = () => debugStatusUpdate('mark first task complete'); // Test simple completion
-    window.debugStatusUpdate3 = () => debugStatusUpdate('mark task 2 complete'); // Test task number
-    window.debugStatusUpdate4 = () => debugStatusUpdate('mark second task complete'); // Test ordinal
-    window.debugStatusUpdate5 = () => debugStatusUpdate('mark third task complete'); // Test ordinal
-    window.debugBulkUpdate1 = () => debugBulkUpdate('mark all tasks as complete'); // Test bulk complete
-    window.debugBulkUpdate2 = () => debugBulkUpdate('mark all tasks as in progress'); // Test bulk in progress
-    window.debugBulkUpdate3 = () => debugBulkUpdate('mark all tasks as pending'); // Test bulk pending
+    if (import.meta.env.DEV) {
+      window.debugDeleteAll = debugDeleteAll;
+      window.debugReadAll = debugReadAll;
+      window.debugBulkUpdate = debugBulkUpdate;
+      window.debugStatusUpdate = debugStatusUpdate;
+      window.debugIndividualUpdate = debugIndividualUpdate;
+      window.debugRecognition = debugRecognition;
+      window.debugMicrophone = debugMicrophone;
+      window.debugPriorityUpdate = debugPriorityUpdate;
+      window.debugTaskNumberStatus = debugTaskNumberStatus;
+      window.debugDueDateUpdate = debugDueDateUpdate;
+    }
+    return () => {
+      if (import.meta.env.DEV) {
+        ['debugDeleteAll','debugReadAll','debugBulkUpdate','debugStatusUpdate',
+         'debugIndividualUpdate','debugRecognition','debugMicrophone',
+         'debugPriorityUpdate','debugTaskNumberStatus','debugDueDateUpdate'
+        ].forEach(k => delete window[k]);
+      }
+    };
   }, []);
 
   // SHARED HELPER FUNCTIONS

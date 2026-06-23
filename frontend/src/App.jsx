@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Box, Snackbar, Alert } from '@mui/material';
+import { Box, Snackbar, Alert, Typography, Button } from '@mui/material';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-
+import React from 'react';
 
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
@@ -13,6 +13,29 @@ import StatsPage from './pages/StatsPage';
 import LoginPage from './pages/LoginPage';
 import RegistrationPage from './pages/RegistrationPage';
 import VoiceGuide from './pages/VoiceGuide';
+
+// Error Boundary
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 2, p: 4 }}>
+          <Typography variant="h5">Something went wrong</Typography>
+          <Typography variant="body2" color="text.secondary">{this.state.error?.message}</Typography>
+          <Button variant="contained" onClick={() => this.setState({ hasError: false, error: null })}>Try Again</Button>
+        </Box>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 
 
@@ -33,16 +56,19 @@ const AppContent = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [appState, setAppState] = useState('login'); // default to login, no anonymous access
 
-  // Listen for events from AboutPage
+  // Listen for events from AboutPage and auth events
   useEffect(() => {
     const handleShowSignIn = () => setAppState('login');
     const handleGoToTasks = () => { setAppState('app'); setCurrentPage('home'); };
+    const handleLogout = () => setAppState('login');
 
     window.addEventListener('showSignIn', handleShowSignIn);
     window.addEventListener('goToTasks', handleGoToTasks);
+    window.addEventListener('auth:logout', handleLogout);
     return () => {
       window.removeEventListener('showSignIn', handleShowSignIn);
       window.removeEventListener('goToTasks', handleGoToTasks);
+      window.removeEventListener('auth:logout', handleLogout);
     };
   }, []);
 
@@ -154,13 +180,15 @@ const AppContent = () => {
 // Main App Component (provides context)
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AppProvider>
-          <AppContent />
-        </AppProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppProvider>
+            <AppContent />
+          </AppProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

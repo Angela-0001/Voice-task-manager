@@ -106,10 +106,7 @@ const VoiceRecorder = ({ open, onClose, onSave, taskId }) => {
       setError(null);
       setPermissionDenied(false);
       setRecordingState('requesting');
-      
-      console.log('🎙️ Requesting microphone access...');
 
-      // Use simpler audio constraints for faster startup
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -118,7 +115,6 @@ const VoiceRecorder = ({ open, onClose, onSave, taskId }) => {
         } 
       });
 
-      console.log('✅ Microphone access granted, starting recording...');
       setRecordingState('recording');
 
       // Set up audio context for visualization
@@ -152,13 +148,6 @@ const VoiceRecorder = ({ open, onClose, onSave, taskId }) => {
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         setRecordingState('recorded');
-        
-        console.log('✅ Recording completed:', {
-          size: `${(blob.size / 1024).toFixed(1)}KB`,
-          duration: `${recordingDuration}s`
-        });
-        
-        // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -182,8 +171,6 @@ const VoiceRecorder = ({ open, onClose, onSave, taskId }) => {
       drawWaveform();
 
     } catch (error) {
-      console.error('❌ Error starting recording:', error);
-      
       if (error.name === 'NotAllowedError') {
         setPermissionDenied(true);
         setError('🎤 Microphone access denied. Please click the microphone icon in your browser\'s address bar and allow access, then try again.');
@@ -239,20 +226,17 @@ const VoiceRecorder = ({ open, onClose, onSave, taskId }) => {
     setError(null);
 
     try {
-      // Show immediate feedback
-      console.log('🎙️ Starting voice memo upload...', {
-        size: `${(audioBlob.size / 1024).toFixed(1)}KB`,
-        duration: `${recordingDuration}s`,
-        taskId
-      });
-
       const formData = new FormData();
       formData.append('audioFile', audioBlob, `voice-memo-${Date.now()}.webm`);
       formData.append('taskId', taskId);
       formData.append('duration', recordingDuration.toString());
       formData.append('mimeType', 'audio/webm;codecs=opus');
 
-      const response = await fetch('http://localhost:5014/api/voice-memo/upload', {
+      const API_BASE = import.meta.env.VITE_API_URL
+        ? import.meta.env.VITE_API_URL.replace('/graphql', '')
+        : 'http://localhost:5014';
+
+      const response = await fetch(`${API_BASE}/api/voice-memo/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
@@ -266,9 +250,6 @@ const VoiceRecorder = ({ open, onClose, onSave, taskId }) => {
       }
 
       const result = await response.json();
-      
-      console.log('✅ Voice memo uploaded successfully:', result.voiceMemo);
-      
       setRecordingState('success');
       setSuccess(true);
       
@@ -282,9 +263,8 @@ const VoiceRecorder = ({ open, onClose, onSave, taskId }) => {
       }, 1000);
 
     } catch (error) {
-      console.error('❌ Voice memo upload error:', error);
       setError(error.message || 'Failed to save voice memo. Please try again.');
-      setRecordingState('recorded'); // Go back to recorded state
+      setRecordingState('recorded');
     } finally {
       setIsUploading(false);
     }

@@ -27,7 +27,7 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { useMutation } from '@apollo/client';
-import { DELETE_VOICE_MEMO, GET_TASKS } from '../graphql/queries';
+import { DELETE_VOICE_MEMO } from '../graphql/queries';
 
 const VoiceMemoPlayer = ({ memo, taskId, onDelete }) => {
   const theme = useTheme();
@@ -46,27 +46,14 @@ const VoiceMemoPlayer = ({ memo, taskId, onDelete }) => {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    
-    console.log('🎵 Audio setup for memo:', { 
-      id: memo.id, 
-      audioUrl: memo.audioUrl,
-      fileName: memo.fileName 
-    });
 
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
     const handleEnded = () => setIsPlaying(false);
-    const handleLoadStart = () => {
-      setIsLoading(true);
-      setLoadError(false);
-    };
+    const handleLoadStart = () => { setIsLoading(true); setLoadError(false); };
     const handleCanPlay = () => setIsLoading(false);
     const handleCanPlayThrough = () => setIsLoading(false);
-    const handleError = () => {
-      setIsLoading(false);
-      setLoadError(true);
-      console.error('Audio loading error for:', memo.audioUrl);
-    };
+    const handleError = () => { setIsLoading(false); setLoadError(true); };
 
     audio.addEventListener('timeupdate', updateTime);
     audio.addEventListener('loadedmetadata', updateDuration);
@@ -114,21 +101,11 @@ const VoiceMemoPlayer = ({ memo, taskId, onDelete }) => {
       if (isLoading) {
         const playWhenReady = () => {
           audio.removeEventListener('canplay', playWhenReady);
-          audio.play().then(() => {
-            setIsPlaying(true);
-          }).catch(error => {
-            console.error('Play error:', error);
-            setLoadError(true);
-          });
+        audio.play().then(() => setIsPlaying(true)).catch(() => setLoadError(true));
         };
         audio.addEventListener('canplay', playWhenReady);
       } else {
-        audio.play().then(() => {
-          setIsPlaying(true);
-        }).catch(error => {
-          console.error('Play error:', error);
-          setLoadError(true);
-        });
+        audio.play().then(() => setIsPlaying(true)).catch(() => setLoadError(true));
       }
     }
   };
@@ -192,44 +169,14 @@ const VoiceMemoPlayer = ({ memo, taskId, onDelete }) => {
   };
 
   const handleDelete = async () => {
-    console.log('🗑️ DELETE BUTTON CLICKED - Starting deletion process');
-    
-    // Confirm deletion
-    if (!window.confirm('Are you sure you want to delete this voice memo? This action cannot be undone.')) {
-      console.log('🗑️ DELETE CANCELLED by user');
-      setMenuAnchor(null);
-      return;
-    }
-    
-    console.log('🗑️ DELETE CONFIRMED by user');
-    
-    try {
-      console.log('🗑️ Attempting to delete voice memo:', { taskId, memoId: memo.id });
-      
-      const result = await deleteVoiceMemo({
-        variables: { taskId, memoId: memo.id },
-        errorPolicy: 'all'
-      });
-      
-      console.log('🗑️ Delete result:', result);
-      
-      if (result.errors) {
-        console.error('🗑️ GraphQL errors:', result.errors);
-        throw new Error(result.errors[0].message);
-      }
-      
-      if (onDelete) {
-        onDelete(memo.id);
-      }
-      
-      // Show success message
-      alert('Voice memo deleted successfully!');
-      
-    } catch (error) {
-      console.error('❌ Error deleting voice memo:', error);
-      alert(`Failed to delete voice memo: ${error.message}`);
-    }
     setMenuAnchor(null);
+    try {
+      const result = await deleteVoiceMemo({ variables: { taskId, memoId: memo.id }, errorPolicy: 'all' });
+      if (result.errors) throw new Error(result.errors[0].message);
+      if (onDelete) onDelete(memo.id);
+    } catch {
+      // parent will handle error via onDelete not being called
+    }
   };
 
 
@@ -276,7 +223,7 @@ const VoiceMemoPlayer = ({ memo, taskId, onDelete }) => {
         {/* Audio Element */}
         <audio
           ref={audioRef}
-          src={memo.audioUrl.startsWith('http') ? memo.audioUrl : `http://localhost:5014${memo.audioUrl}`}
+          src={memo.audioUrl.startsWith('http') ? memo.audioUrl : `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/graphql', '') : 'http://localhost:5014'}${memo.audioUrl}`}
           preload="auto"
           style={{ display: 'none' }}
         />

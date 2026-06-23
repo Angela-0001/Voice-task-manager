@@ -32,8 +32,10 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
 const upload = multer({
-  limits: { fileSize: 10000000 },
+  limits: { fileSize: MAX_FILE_SIZE_BYTES },
   fileFilter: (req, file, cb) => {
     cb(file.mimetype.startsWith('audio/') ? null : new Error('Only audio files allowed'), file.mimetype.startsWith('audio/'));
   }
@@ -82,7 +84,6 @@ mongoose.connection.on('error', err => console.error('MongoDB error:', err));app
     if (task.voiceMemos && task.voiceMemos.length >= 10) {
       return res.status(400).json({ error: 'Maximum 10 voice memos allowed per task' });
     }
-
     const uniqueFilename = `voice-memo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}.webm`;
 
     const uploadStream = global.gridFSBucket.openUploadStream(uniqueFilename, {
@@ -166,10 +167,10 @@ mongoose.connection.on('error', err => console.error('MongoDB error:', err));app
       'Content-Type': file.metadata?.mimeType || 'audio/webm',
       'Content-Length': file.length,
       'Accept-Ranges': 'bytes',
-      'Cache-Control': 'private, max-age=86400', // Cache for 24 hours
+      'Cache-Control': 'private, max-age=86400',
       'ETag': `"${fileId}-${file.length}"`,
       'Last-Modified': file.uploadDate.toUTCString(),
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowedOrigins.join(','),
       'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
       'Access-Control-Allow-Headers': 'Range, Authorization'
     });

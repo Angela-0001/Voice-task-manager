@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
-// Set timezone to IST
-process.env.TZ = 'Asia/Kolkata';
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_RECORDING_SECONDS = 300;             // 5 minutes
+const MAX_VOICE_MEMOS_PER_TASK = 10;
 
 const taskSchema = new mongoose.Schema({
   userId: {
@@ -63,12 +64,12 @@ const taskSchema = new mongoose.Schema({
     fileSize: {
       type: Number,
       required: true,
-      max: [10485760, 'File size cannot exceed 10MB'] // 10MB limit
+      max: [MAX_FILE_SIZE_BYTES, 'File size cannot exceed 10MB']
     },
     duration: {
       type: Number,
       required: true,
-      max: [300, 'Recording cannot exceed 5 minutes'] // 5 minutes = 300 seconds
+      max: [MAX_RECORDING_SECONDS, 'Recording cannot exceed 5 minutes']
     },
     mimeType: {
       type: String,
@@ -106,9 +107,8 @@ taskSchema.index({ 'voiceMemos.transcription': 'text' }); // Text search on tran
 
 // Validation for voice memos
 taskSchema.pre('save', function() {
-  // Limit voice memos per task
-  if (this.voiceMemos && this.voiceMemos.length > 10) {
-    throw new Error('Maximum 10 voice memos allowed per task');
+  if (this.voiceMemos && this.voiceMemos.length > MAX_VOICE_MEMOS_PER_TASK) {
+    throw new Error(`Maximum ${MAX_VOICE_MEMOS_PER_TASK} voice memos allowed per task`);
   }
 });
 

@@ -23,38 +23,16 @@ const initializeVoices = () => {
         voice.lang.startsWith('en-US') || voice.lang.startsWith('en-GB')
       );
       
-      // Make voice info available globally for debugging
-      window.voiceDebug = {
-        getAllVoices: () => availableVoices.map(v => ({ name: v.name, lang: v.lang })),
-        getEnglishVoices: () => englishVoices.map(v => ({ name: v.name, lang: v.lang })),
-        testVoice: (voiceName) => {
-          const voice = availableVoices.find(v => v.name.includes(voiceName));
-          if (voice) {
-            const utterance = new SpeechSynthesisUtterance(`Hello, I am ${voice.name}`);
-            utterance.voice = voice;
-            window.speechSynthesis.speak(utterance);
-          } else {
-          }
-        },
-        testDateExtraction: (text) => {
-          const today = new Date();
-          const textLower = text.toLowerCase();
-          
-          if (textLower.includes('tomorrow')) {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(today.getDate() + 1);
-            return tomorrow.toISOString();
-          }
-          
-          return 'No date detected';
-        }
-      };
+      // Make voice debug info available only in development
+      if (import.meta.env?.DEV) {
+        window.voiceDebug = {
+          getAllVoices: () => availableVoices.map(v => ({ name: v.name, lang: v.lang })),
+          getEnglishVoices: () => englishVoices.map(v => ({ name: v.name, lang: v.lang })),
+        };
+      }
 
-      if (availableVoices.length > 0) {
-        console.log('- List all 27 voices');
-        console.log('- List English voices only');
-        console.log('- Test a specific voice');
-        console.log('- Test date extraction');
+      if (availableVoices.length > 0 && import.meta.env?.DEV) {
+        console.log('Speech voices loaded:', availableVoices.length);
       }
     };
     
@@ -162,39 +140,63 @@ export const speak = (text, options = {}) => {
       return;
     }
 
-    try {
-      // Cancel any ongoing speech
-      window.speechSynthesis.cancel();
-      
-      const utteranceConfig = createUtterance(text, options);
-      const utterance = new SpeechSynthesisUtterance(utteranceConfig.text);
-      
-      // Apply settings
-      utterance.rate = utteranceConfig.rate;
-      utterance.pitch = utteranceConfig.pitch;
-      utterance.volume = utteranceConfig.volume;
-      utterance.lang = utteranceConfig.lang;
-      
-      if (utteranceConfig.voice) {
-        utterance.voice = utteranceConfig.voice;
+    // Chrome bug workaround: resume if paused
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+
+    const doSpeak = () => {
+      try {
+        const utteranceConfig = createUtterance(text, options);
+        const utterance = new SpeechSynthesisUtterance(utteranceConfig.text);
+
+        utterance.rate = utteranceConfig.rate;
+        utterance.pitch = utteranceConfig.pitch;
+        utterance.volume = utteranceConfig.volume;
+        utterance.lang = utteranceConfig.lang;
+
+        if (utteranceConfig.voice) {
+          utterance.voice = utteranceConfig.voice;
+        }
+
+        utterance.onend = () => resolve();
+        utterance.onerror = (event) => {
+          if (event.error !== 'interrupted') {
+            console.error('🔊 Speech error:', event.error);
+          }
+          resolve();
+        };
+
+        window.speechSynthesis.speak(utterance);
+
+        // Chrome bug: long utterances get cut off — keep synthesis alive
+        const keepAlive = setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            clearInterval(keepAlive);
+          } else {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+          }
+        }, 10000);
+
+      } catch (error) {
+        console.error('🔊 Speech synthesis error:', error);
+        resolve();
       }
+    };
 
-      // Event handlers
-      utterance.onend = () => {
-        resolve();
+    // Wait for voices to load if not ready yet
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        availableVoices = window.speechSynthesis.getVoices();
+        doSpeak();
       };
-
-      utterance.onerror = (event) => {
-        console.error('🔊 Speech error:', event.error);
-        resolve();
-      };
-
-      // Speak);
-      window.speechSynthesis.speak(utterance);
-      
-    } catch (error) {
-      console.error('🔊 Speech synthesis error:', error);
-      resolve();
+    } else {
+      if (availableVoices.length === 0) {
+        availableVoices = voices;
+      }
+      doSpeak();
     }
   });
 };

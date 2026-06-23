@@ -59,30 +59,12 @@ const EditTaskForm = ({ task, onSubmit, onCancel }) => {
   // GraphQL Mutation
   const [updateTask] = useMutation(UPDATE_TASK, {
     onCompleted: (data) => {
-      console.log('✅ TASK UPDATED SUCCESSFULLY:', data.updateTask);
       showSnackbar('✅ Task updated successfully!', 'success');
-
-      // Voice feedback disabled
-
-
-      // Clear form and close
       setIsSubmitting(false);
-
-      // Call onSubmit callback if provided
-      if (onSubmit) {
-        onSubmit(data.updateTask);
-      }
+      if (onSubmit) onSubmit(data.updateTask);
     },
     onError: (error) => {
-      console.error('❌ TASK UPDATE ERROR:', error);
-      console.error('❌ ERROR DETAILS:', error.message);
-      console.error('❌ GRAPHQL ERRORS:', error.graphQLErrors);
-      console.error('❌ NETWORK ERROR:', error.networkError);
       showSnackbar('❌ Failed to update task. Please try again.', 'error');
-
-      // Voice feedback disabled
-
-
       setIsSubmitting(false);
     }
   });
@@ -92,27 +74,12 @@ const EditTaskForm = ({ task, onSubmit, onCancel }) => {
 
     if (!title.trim()) {
       showSnackbar('❌ Please enter a task title', 'error');
-
       return;
     }
 
     setIsSubmitting(true);
 
-    // Voice feedback disabled
-
-
     try {
-      console.log('📋 UPDATING TASK WITH DATA:', {
-        id: task.id,
-        title: title.trim(),
-        description: description.trim(),
-        status,
-        dueDate: dueDate ? dueDate.toISOString() : null,
-        priority,
-        reminderEnabled,
-        recurrence
-      });
-
       const variables = {
         id: task.id,
         title: title.trim(),
@@ -124,9 +91,6 @@ const EditTaskForm = ({ task, onSubmit, onCancel }) => {
         recurrence
       };
 
-      console.log('📋 GRAPHQL VARIABLES:', variables);
-
-      // Perform GraphQL mutation with optimistic response
       await updateTask({
         variables,
         optimisticResponse: {
@@ -145,8 +109,7 @@ const EditTaskForm = ({ task, onSubmit, onCancel }) => {
         refetchQueries: [{ query: GET_TASKS }],
         awaitRefetchQueries: true
       });
-    } catch (error) {
-      console.error('❌ UPDATE ERROR:', error);
+    } catch {
       // Error handling is done in the mutation's onError callback
     }
   };
@@ -165,25 +128,15 @@ const EditTaskForm = ({ task, onSubmit, onCancel }) => {
     recognition.interimResults = false;
     recognition.lang = 'en-US';
 
-    recognition.onstart = () => {
-      setIsListening(true);
-
-    };
+    recognition.onstart = () => setIsListening(true);
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setTitle(transcript);
+      setTitle(event.results[0][0].transcript);
       setIsListening(false);
     };
 
-    recognition.onerror = () => {
-      setIsListening(false);
-
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
 
     recognition.start();
   };

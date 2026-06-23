@@ -1,8 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// Set timezone to IST (matching reference implementation)
-process.env.TZ = 'Asia/Kolkata';
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -23,7 +21,7 @@ const userSchema = new mongoose.Schema({
   passwordHash: {
     type: String,
     required: true,
-    minlength: [6, 'Password must be at least 6 characters']
+    minlength: [8, 'Password must be at least 8 characters']
   },
   profileImage: {
     type: String,
@@ -36,11 +34,11 @@ const userSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: () => new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}))
+    default: Date.now
   },
   lastLogin: {
     type: Date,
-    default: () => new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}))
+    default: Date.now
   }
 }, {
   timestamps: true // Adds createdAt and updatedAt automatically
